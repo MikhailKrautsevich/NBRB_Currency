@@ -3,4 +3,6 @@
     <string name="hint_currency">CURRENCY</string>
     <string name="hint_scale">100 currency names</string>
     <string name="hint_course">404</string>
+    <string name="problem_message">Не удалось получить курсы валют</string>
+    <string name="hint_date">dd.MM.yyyy</string>
 </resources>
