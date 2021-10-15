@@ -6,10 +6,12 @@ import android.util.Log
 import com.example.nbrbcurrency.retrofit.CurrencyApi
 import com.example.nbrbcurrency.retrofit.RetrofitHelper
 import com.example.nbrbcurrency.retrofit.models.CurrencyDataList
+import com.example.nbrbcurrency.utils.DateHelper
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -37,5 +39,9 @@ class MainActivity : AppCompatActivity() {
                 Log.d(LOG, "" + t.localizedMessage)
             }
         })
+
+        val date: Date = Date()
+        Log.d(LOG, DateHelper.getFormattedDate(date))
+        Log.d(LOG, DateHelper.getTomorrowDate(date))
     }
 }

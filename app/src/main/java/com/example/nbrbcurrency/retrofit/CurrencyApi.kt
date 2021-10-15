@@ -1,6 +1,5 @@
 package com.example.nbrbcurrency.retrofit
 
-import com.example.nbrbcurrency.retrofit.models.BreakFastMenu
 import com.example.nbrbcurrency.retrofit.models.CurrencyDataList
 import retrofit2.Call
 import retrofit2.http.GET
