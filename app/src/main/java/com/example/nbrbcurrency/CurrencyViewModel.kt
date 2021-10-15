@@ -5,7 +5,6 @@ import com.example.nbrbcurrency.retrofit.CurrencyApi
 import com.example.nbrbcurrency.retrofit.RetrofitHelper
 import com.example.nbrbcurrency.retrofit.models.CurrencyDataList
 import com.example.nbrbcurrency.utils.DateHelper
-import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import retrofit2.Retrofit
@@ -20,8 +19,8 @@ class CurrencyViewModel : ViewModel() {
         val retrofit: Retrofit = RetrofitHelper.getRetrofit()
         val api: CurrencyApi? = RetrofitHelper.getApi(retrofit)
 
-        val currentCourses:Single<CurrencyDataList>? = api?.getCurrencyListSingle(currentDate)
-        val tomorrowCourses:Single<CurrencyDataList>? = api?.getCurrencyListSingle(tomorrowDate)
+        val currentCourses:Single<CurrencyDataList>? = api?.getCurrencyList(currentDate)
+        val tomorrowCourses:Single<CurrencyDataList>? = api?.getCurrencyList(tomorrowDate)
 
         return currentCourses?.subscribeOn(Schedulers.newThread())
     }

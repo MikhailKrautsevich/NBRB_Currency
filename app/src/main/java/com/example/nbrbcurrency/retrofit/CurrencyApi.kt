@@ -9,8 +9,5 @@ import retrofit2.http.Query
 interface CurrencyApi {
 
     @GET(value = "XmlExRates.aspx?periodicity=0")
-    fun getCurrencyList(@Query("ondate") ondate: String): Call<CurrencyDataList>
-
-    @GET(value = "XmlExRates.aspx?periodicity=0")
-    fun getCurrencyListSingle(@Query("ondate") ondate: String): Single<CurrencyDataList>
+    fun getCurrencyList(@Query("ondate") ondate: String): Single<CurrencyDataList>
 }
