@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nbrbcurrency.retrofit.CurrencyApi
@@ -14,6 +16,10 @@ import com.example.nbrbcurrency.retrofit.RetrofitHelper
 import com.example.nbrbcurrency.retrofit.models.CurrencyData
 import com.example.nbrbcurrency.retrofit.models.CurrencyDataList
 import com.example.nbrbcurrency.utils.DateHelper
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.observers.DisposableSingleObserver
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -30,6 +36,10 @@ class CurrencyCoursesFragment : Fragment() {
     private lateinit var tomorrowDateTextView: TextView
     private lateinit var problemTextView: TextView
     private lateinit var recycler: RecyclerView
+
+    private var disposable: Disposable? = null
+
+    private val viewModel: CurrencyViewModel by lazy { ViewModelProvider(this).get(CurrencyViewModel::class.java) }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,36 +61,58 @@ class CurrencyCoursesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val date = Date()
-        currentDateTextView.text = DateHelper.getDateForTextView(date)
-        tomorrowDateTextView.text = DateHelper.getTomorrowDateForTextView(date)
-
-        val currentDate = DateHelper.getDateForRetrofit(date)
-        val tomorrowDate = DateHelper.getTomorrowDateForRetrofit(date)
-
-        val retrofit: Retrofit = RetrofitHelper.getRetrofit()
-        val api: CurrencyApi? = RetrofitHelper.getApi(retrofit)
-        val call = api?.getCurrencyList(currentDate)
-
-        call?.enqueue(object : Callback<CurrencyDataList> {
-            override fun onResponse(
-                call: Call<CurrencyDataList>,
-                response: Response<CurrencyDataList>
-            ) {
-                Log.d(LOG, response.body()?.currencies?.size.toString())
-                if (response.body() != null && response.body()!!.currencies != null) {
-                    recycler.adapter = CurrencyAdapter(response.body()!!.currencies)
-
-                    showRecycler()
+//        val date = Date()
+//        currentDateTextView.text = DateHelper.getDateForTextView(date)
+//        tomorrowDateTextView.text = DateHelper.getTomorrowDateForTextView(date)
+//
+//        val currentDate = DateHelper.getDateForRetrofit(date)
+//        val tomorrowDate = DateHelper.getTomorrowDateForRetrofit(date)
+//
+//        val retrofit: Retrofit = RetrofitHelper.getRetrofit()
+//        val api: CurrencyApi? = RetrofitHelper.getApi(retrofit)
+//        val call = api?.getCurrencyList(currentDate)
+//
+//        call?.enqueue(object : Callback<CurrencyDataList> {
+//            override fun onResponse(
+//                call: Call<CurrencyDataList>,
+//                response: Response<CurrencyDataList>
+//            ) {
+//                Log.d(LOG, response.body()?.currencies?.size.toString())
+//                if (response.body() != null && response.body()!!.currencies != null) {
+//                    recycler.adapter = CurrencyAdapter(response.body()!!.currencies)
+//
+//                    showRecycler()
+//                }
+//            }
+//
+//            override fun onFailure(call: Call<CurrencyDataList>, t: Throwable) {
+//                Log.d(LOG, "" + t.localizedMessage)
+//                showProblemMessage()
+//            }
+//        })
+        val courses : Single<CurrencyDataList>? = viewModel.getCurrencyData()
+        disposable = courses?.observeOn(AndroidSchedulers.mainThread())
+            ?.subscribeWith(object : DisposableSingleObserver<CurrencyDataList>(){
+                override fun onSuccess(dataList: CurrencyDataList?) {
+                    if (dataList != null) {
+                        recycler.adapter = CurrencyAdapter(dataList.currencies)
+                        showRecycler()
+                    }
                 }
-            }
 
-            override fun onFailure(call: Call<CurrencyDataList>, t: Throwable) {
-                Log.d(LOG, "" + t.localizedMessage)
-                showProblemMessage()
-            }
-        })
+                override fun onError(e: Throwable?) {
+                    showProblemMessage()
+                    if (e != null) {
+                        Log.d(LOG, "" + e.localizedMessage)
+                    }
+                }
+            })
 
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        disposable?.dispose()
     }
 
     private fun showRecycler(){
