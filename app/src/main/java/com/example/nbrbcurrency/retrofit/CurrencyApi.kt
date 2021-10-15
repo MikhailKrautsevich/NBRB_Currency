@@ -10,7 +10,4 @@ interface CurrencyApi {
 
     @GET(value = "XmlExRates.aspx?periodicity=0")
     fun getCurrencyList(@Query("ondate") ondate: String): Call<CurrencyDataList>
-
-    @GET("/xml/simple.xml")
-    fun test():Call<BreakFastMenu>
 }

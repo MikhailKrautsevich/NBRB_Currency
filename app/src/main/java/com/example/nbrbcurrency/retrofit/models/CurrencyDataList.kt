@@ -5,9 +5,9 @@ import org.simpleframework.xml.ElementList
 import org.simpleframework.xml.Root
 
 @Root(strict = false, name = "DailyExRates")
-data class CurrencyDataList @JvmOverloads constructor(
+data class CurrencyDataList constructor(
     @field:Attribute(name = "Date")
-    var date: String,
+    var date: String = "",
     @field:ElementList(inline = true)
-    var currencies: List<CurrencyData>
+    var currencies: List<CurrencyData> = ArrayList()
 )

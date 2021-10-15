@@ -5,17 +5,17 @@ import org.simpleframework.xml.Element
 import org.simpleframework.xml.Root
 
 @Root(name = "Currency")
-data class CurrencyData @JvmOverloads constructor(
+data class CurrencyData constructor(
     @field:Attribute(name = "Id")
-    var id: String,
+    var id: String = "",
     @field:Element(name = "NumCode")
-    var numCode: String,
+    var numCode: String = "",
     @field:Element(name = "CharCode")
-    var charCode: String,
+    var charCode: String = "",
     @field:Element(name = "Scale")
-    var scale: String,
+    var scale: String = "",
     @field:Element(name = "Name")
-    var name: String,
+    var name: String = "",
     @field:Element(name = "Rate")
-    var rate: String,
+    var rate: String = "",
 )

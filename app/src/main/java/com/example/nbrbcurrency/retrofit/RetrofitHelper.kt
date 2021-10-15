@@ -8,7 +8,6 @@ import retrofit2.converter.simplexml.SimpleXmlConverterFactory
 class RetrofitHelper {
     companion object {
         private const val BASE_URL = "https://www.nbrb.by/Services/"
-        private const val TEST_URL = "http://www.w3schools.com"
 
         fun getRetrofit(): Retrofit {
             val interceptor = HttpLoggingInterceptor()
