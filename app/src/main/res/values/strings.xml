@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">NBRB Currency</string>
+    <string name="hint_currency">CURRENCY</string>
+    <string name="hint_scale">100 currency names</string>
+    <string name="hint_course">404</string>
 </resources>
