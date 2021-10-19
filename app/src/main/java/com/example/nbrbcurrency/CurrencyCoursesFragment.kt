@@ -1,17 +1,18 @@
 package com.example.nbrbcurrency
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.nbrbcurrency.interfaces.HostInterface
 import com.example.nbrbcurrency.retrofit.models.CurrencyData
-import com.example.nbrbcurrency.retrofit.models.CurrencyDataList
 import com.example.nbrbcurrency.utils.DateHelper
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Single
@@ -28,11 +29,25 @@ class CurrencyCoursesFragment : Fragment() {
     private lateinit var currentDateTextView: TextView
     private lateinit var tomorrowDateTextView: TextView
     private lateinit var problemTextView: TextView
+    private lateinit var toolbar: Toolbar
+    private lateinit var menu: Menu
+    private lateinit var settings: MenuItem
     private lateinit var recycler: RecyclerView
 
+    private var host: HostInterface? = null
     private var disposable: Disposable? = null
 
     private val viewModel: CurrencyViewModel by lazy { ViewModelProvider(this).get(CurrencyViewModel::class.java) }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is HostInterface) host = context
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -53,15 +68,23 @@ class CurrencyCoursesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        toolbar = view.findViewById(R.id.toolBar)
+
+        if (activity is AppCompatActivity) {
+            (activity as AppCompatActivity).setSupportActionBar(toolbar)
+        }
+        toolbar.setNavigationIcon(R.drawable.ic_back)
         setDate()
 
-        val courses : Single<CurrencyDataList>? = viewModel.getCurrencyData()
+        val courses: Single<Array<List<CurrencyData>>>? = viewModel.getCurrencyData()
         disposable = courses?.observeOn(AndroidSchedulers.mainThread())
-            ?.subscribeWith(object : DisposableSingleObserver<CurrencyDataList>(){
-                override fun onSuccess(dataList: CurrencyDataList?) {
-                    if (dataList != null) {
-                        recycler.adapter = CurrencyAdapter(dataList.currencies)
+            ?.subscribeWith(object : DisposableSingleObserver<Array<List<CurrencyData>>>() {
+                override fun onSuccess(dataList: Array<List<CurrencyData>>) {
+                    if (dataList[0] != null && dataList[1] != null) {
+                        recycler.adapter = CurrencyAdapter(dataList[0], dataList[1])
                         showRecycler()
+                        showSettingsMenuIcon()
                     }
                 }
 
@@ -72,7 +95,6 @@ class CurrencyCoursesFragment : Fragment() {
                     }
                 }
             })
-
     }
 
     override fun onDestroy() {
@@ -80,22 +102,44 @@ class CurrencyCoursesFragment : Fragment() {
         disposable?.dispose()
     }
 
-    private fun setDate(){
+    override fun onDetach() {
+        super.onDetach()
+        host = null
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        super.onCreateOptionsMenu(menu, inflater)
+        inflater.inflate(R.menu.currency_courses_menu, menu)
+        this.menu = menu
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.settings) {
+            host?.showSettings()
+        }
+        return false
+    }
+
+    private fun setDate() {
         val date = Date()
         currentDateTextView.text = DateHelper.getDateForTextView(date)
         tomorrowDateTextView.text = DateHelper.getTomorrowDateForTextView(date)
     }
 
-    private fun showRecycler(){
+    private fun showRecycler() {
         recycler.visibility = View.VISIBLE
         problemTextView.visibility = View.INVISIBLE
     }
 
-    private fun showProblemMessage(){
+    private fun showProblemMessage() {
         recycler.visibility = View.INVISIBLE
         problemTextView.visibility = View.VISIBLE
     }
 
+    private fun showSettingsMenuIcon() {
+        settings = menu.findItem(R.id.settings)
+        settings.isVisible = true
+    }
 
     private inner class CurrencyHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val charCode: TextView = itemView.findViewById(R.id.charCode)
@@ -103,18 +147,24 @@ class CurrencyCoursesFragment : Fragment() {
         private val currentCourse: TextView = itemView.findViewById(R.id.current_course)
         private val tomorrowCourse: TextView = itemView.findViewById(R.id.tomorrow_course)
 
-        private lateinit var currency: CurrencyData
+        private lateinit var currencyToday: CurrencyData
+        private lateinit var currencyTomorrow: CurrencyData
 
-        fun bind(currency: CurrencyData) {
-            this.currency = currency
-            charCode.text = this.currency.charCode
-            scaleName.text = String.format("%s %s", this.currency.scale, this.currency.name)
-            currentCourse.text = this.currency.rate
-
+        fun bind(currencyToday: CurrencyData, currencyTomorrow: CurrencyData) {
+            this.currencyToday = currencyToday
+            this.currencyTomorrow = currencyTomorrow
+            charCode.text = this.currencyToday.charCode
+            scaleName.text =
+                String.format("%s %s", this.currencyToday.scale, this.currencyToday.name)
+            currentCourse.text = this.currencyToday.rate
+            tomorrowCourse.text = this.currencyTomorrow.rate
         }
     }
 
-    private inner class CurrencyAdapter(var currencies: List<CurrencyData>) :
+    private inner class CurrencyAdapter(
+        var currenciesToday: List<CurrencyData>,
+        var currenciesTomorrow: List<CurrencyData>
+    ) :
         RecyclerView.Adapter<CurrencyHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CurrencyHolder {
             val view = layoutInflater.inflate(R.layout.currency_item, parent, false)
@@ -122,11 +172,12 @@ class CurrencyCoursesFragment : Fragment() {
         }
 
         override fun onBindViewHolder(holder: CurrencyHolder, position: Int) {
-            val currency = currencies[position]
-            holder.bind(currency)
+            val currencyToday = currenciesToday[position]
+            val currencyTomorrow = currenciesTomorrow[position]
+            holder.bind(currencyToday, currencyTomorrow)
         }
 
-        override fun getItemCount() = currencies.size
+        override fun getItemCount() = currenciesToday.size
 
     }
 }

@@ -1,8 +1,14 @@
 <resources>
     <string name="app_name">NBRB Currency</string>
+
     <string name="hint_currency">CURRENCY</string>
     <string name="hint_scale">100 currency names</string>
     <string name="hint_course">404</string>
     <string name="problem_message">Не удалось получить курсы валют</string>
     <string name="hint_date">dd.MM.yyyy</string>
+
+    <string name="menu_settings">Открыть настройки</string>
+    <string name="menu_ok">Принять</string>
+    <string name="menu_courses_title">Курсы валют</string>
+    <string name="menu_settings_title">Настройки валют</string>
 </resources>

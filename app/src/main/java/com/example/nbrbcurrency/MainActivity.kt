@@ -3,19 +3,37 @@ package com.example.nbrbcurrency
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.fragment.app.FragmentManager
+import com.example.nbrbcurrency.interfaces.HostInterface
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), HostInterface {
+
+    val manager: FragmentManager by lazy { supportFragmentManager }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        val manager: FragmentManager = supportFragmentManager
+        setNoTitle()
 
         if (savedInstanceState == null) {
             manager.beginTransaction()
                 .add(R.id.fragment_container, CurrencyCoursesFragment())
                 .commit()
         }
+    }
+
+    override fun showSettings() {
+        manager.beginTransaction()
+            .replace(R.id.fragment_container, SettingsFragment())
+            .addToBackStack("tag")
+            .commit()
+    }
+
+    private fun setNoTitle(){                                                                       // костыль
+        val s = ""
+        this.title = s
+    }
+
+    override fun returnToCourses() {
+        manager.popBackStack()
     }
 }
