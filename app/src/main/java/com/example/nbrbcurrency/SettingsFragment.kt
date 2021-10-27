@@ -62,9 +62,9 @@ class SettingsFragment : Fragment() {
         val v = inflater.inflate(R.layout.fragment_settings, container, false)
         recycler = v.findViewById(R.id.settings_recycler)
 
-        if (settingsHelper.checkFirstLaunch()) {
-            settingsList = initDefaultList()
-        } else settingsList = initNonDefaultList()
+        settingsList = if (settingsHelper.checkFirstLaunch()) {
+            initDefaultList()
+        } else initNonDefaultList()
 
         return v
     }
