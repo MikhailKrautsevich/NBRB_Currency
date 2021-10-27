@@ -11,4 +11,32 @@
     <string name="menu_ok">Принять</string>
     <string name="menu_courses_title">Курсы валют</string>
     <string name="menu_settings_title">Настройки валют</string>
+
+<!--    <string name="currency_aud">AUD</string>-->
+<!--    <string name="currency_amd">AMD</string>-->
+<!--    <string name="currency_bng">BNG</string>-->
+<!--    <string name="currency_uah">UAH</string>-->
+<!--    <string name="currency_dkk">DKK</string>-->
+<!--    <string name="currency_usd">USD</string>-->
+<!--    <string name="currency_eur">EUR</string>-->
+<!--    <string name="currency_pln">PLN</string>-->
+<!--    <string name="currency_jpy">JPY</string>-->
+<!--    <string name="currency_irr">IRR</string>-->
+<!--    <string name="currency_isk">ISK</string>-->
+<!--    <string name="currency_cad">CAD</string>-->
+<!--    <string name="currency_cny">CNY</string>-->
+<!--    <string name="currency_kwd">KWD</string>-->
+<!--    <string name="currency_mdl">MDL</string>-->
+<!--    <string name="currency_nzd">NZD</string>-->
+<!--    <string name="currency_rub">NOK</string>-->
+<!--    <string name="currency_xdr">XDR</string>-->
+<!--    <string name="currency_sgd">SGD</string>-->
+<!--    <string name="currency_kgs">KGS</string>-->
+<!--    <string name="currency_kzt">KZT</string>-->
+<!--    <string name="currency_try">TRY</string>-->
+<!--    <string name="currency_gbp">AMD</string>-->
+<!--    <string name="currency_czk">CZK</string>-->
+<!--    <string name="currency_sek">SEK</string>-->
+<!--    <string name="currency_chk">CHK</string>-->
+
 </resources>
