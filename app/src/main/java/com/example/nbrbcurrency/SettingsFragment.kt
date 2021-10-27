@@ -93,9 +93,9 @@ class SettingsFragment : Fragment() {
         val eur = viewModel.getCurrencyByCharCode(EUR_CHARCODE)
         val usd = viewModel.getCurrencyByCharCode(USD_CHARCODE)
 
-        rub?.let { list.add(CurrencySettingContainer(rub.charCode, rub.scale, true)) }
-        eur?.let { list.add(CurrencySettingContainer(eur.charCode, eur.scale, true)) }
-        usd?.let { list.add(CurrencySettingContainer(usd.charCode, usd.scale, true)) }
+        rub.let { list.add(CurrencySettingContainer(rub.charCode, rub.scale, true)) }
+        eur.let { list.add(CurrencySettingContainer(eur.charCode, eur.scale, true)) }
+        usd.let { list.add(CurrencySettingContainer(usd.charCode, usd.scale, true)) }
 
         currencies?.get(0)?.let {
             for (currency in currencies) {
@@ -114,9 +114,6 @@ class SettingsFragment : Fragment() {
     private fun initNonDefaultList(): List<CurrencySettingContainer>  {
         val list = ArrayList<CurrencySettingContainer>()
 
-        for (i in 0..26) {
-
-        }
         return list
     }
 
