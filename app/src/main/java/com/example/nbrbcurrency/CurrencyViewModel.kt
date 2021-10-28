@@ -3,6 +3,9 @@ package com.example.nbrbcurrency
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.room.Room
+import com.example.nbrbcurrency.db.AppDataBase
+import com.example.nbrbcurrency.db.CurrencySettingContainer
 import com.example.nbrbcurrency.retrofit.CurrencyApi
 import com.example.nbrbcurrency.retrofit.RetrofitHelper
 import com.example.nbrbcurrency.retrofit.models.CurrencyData
@@ -17,13 +20,24 @@ import retrofit2.Retrofit
 import java.util.*
 import kotlin.collections.ArrayList
 
-class CurrencyViewModel : ViewModel() {
+class CurrencyViewModel() : ViewModel() {
+
+    companion object {
+        const val SETTINGS_DB = "SETTINGS_DB"
+    }
 
     private val currencies: MutableLiveData<Array<List<CurrencyData>>> = MutableLiveData()
+    private val currenciesSettings: MutableLiveData<List<CurrencySettingContainer>> =
+        MutableLiveData()
+
     private var disposable: Disposable? = null
 
     init {
         getCurrencyData()
+
+        val settingsDB =
+            Room.databaseBuilder(App.appContext, AppDataBase::class.java, SETTINGS_DB).build()
+        val dao = settingsDB.dao
     }
 
     private fun getCurrencyData() {
@@ -55,6 +69,10 @@ class CurrencyViewModel : ViewModel() {
         })
     }
 
+    private fun getSettings() {
+        
+    }
+
     override fun onCleared() {
         super.onCleared()
         disposable?.dispose()
@@ -66,7 +84,7 @@ class CurrencyViewModel : ViewModel() {
 
     fun getCurrenciesData() = (currencies as LiveData<Array<List<CurrencyData>>>)
 
-    fun getCurrencyByCharCode(charCode: String) : CurrencyData {
+    fun getCurrencyByCharCode(charCode: String): CurrencyData {
         currencies.value?.get(0)?.let {
             val list = currencies.value!![0]
             for (currency in list) {

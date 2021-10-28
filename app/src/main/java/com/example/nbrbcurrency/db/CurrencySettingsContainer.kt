@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(indices = arrayOf(Index(value = arrayOf("charCode, position"), unique = true)) )
 data class CurrencySettingContainer constructor(
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey(autoGenerate = false)
     var id: Int,
     var charCode: String,
     var scale: String,
