@@ -16,7 +16,7 @@ class MainActivity : AppCompatActivity(), HostInterface {
 
         if (savedInstanceState == null) {
             manager.beginTransaction()
-                .add(R.id.fragment_container, CurrencyCoursesFragment())
+                .add(R.id.fragment_container, CurrencyRatesFragment())
                 .commit()
         }
     }

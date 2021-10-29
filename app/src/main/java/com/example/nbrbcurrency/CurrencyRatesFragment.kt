@@ -2,12 +2,15 @@ package com.example.nbrbcurrency
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nbrbcurrency.interfaces.HostInterface
@@ -16,11 +19,7 @@ import com.example.nbrbcurrency.utils.DateHelper
 import io.reactivex.rxjava3.disposables.Disposable
 import java.util.*
 
-class CurrencyCoursesFragment : Fragment() {
-
-    companion object {
-        private const val LOG = "NBRB_LOG"
-    }
+class CurrencyRatesFragment : Fragment() {
 
     private lateinit var currentDateTextView: TextView
     private lateinit var tomorrowDateTextView: TextView
@@ -33,7 +32,8 @@ class CurrencyCoursesFragment : Fragment() {
     private var host: HostInterface? = null
     private var disposable: Disposable? = null
 
-    private val viewModel: CurrencyViewModel by lazy { ViewModelProvider(this).get(CurrencyViewModel::class.java) }
+    private val viewModel: CurrencyViewModel by lazy { ViewModelProvider((host as ViewModelStoreOwner))
+        .get(CurrencyViewModel::class.java) }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -81,9 +81,16 @@ class CurrencyCoursesFragment : Fragment() {
                         showRecycler()
                         showSettingsMenuIcon()
                         recycler.adapter = CurrencyAdapter(it[0], it[1])
-                    } else showProblemMessage()
+                        settings.isVisible = true
+                    } else {
+                        showProblemMessage()
+                    }
                 }
             })
+
+        val settingsAvailable: LiveData<Boolean> = viewModel.getSettingsAvailable()
+        settingsAvailable.observe(viewLifecycleOwner,
+            { t -> t?.let { settings.isVisible = t } })
 
 //        val courses: Single<Array<List<CurrencyData>>>? = viewModel.getCurrencyData()
 //        disposable = courses?.observeOn(AndroidSchedulers.mainThread())
@@ -174,6 +181,7 @@ class CurrencyCoursesFragment : Fragment() {
         var currenciesTomorrow: List<CurrencyData>
     ) :
         RecyclerView.Adapter<CurrencyHolder>() {
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CurrencyHolder {
             val view = layoutInflater.inflate(R.layout.currency_item, parent, false)
             return CurrencyHolder(view)

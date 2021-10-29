@@ -1,11 +1,13 @@
 package com.example.nbrbcurrency
 
+import android.app.Application
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.room.Room
-import com.example.nbrbcurrency.db.AppDataBase
+import com.example.nbrbcurrency.db.SettingsDataBase
 import com.example.nbrbcurrency.db.CurrencySettingContainer
+import com.example.nbrbcurrency.db.SettingsDao
 import com.example.nbrbcurrency.retrofit.CurrencyApi
 import com.example.nbrbcurrency.retrofit.RetrofitHelper
 import com.example.nbrbcurrency.retrofit.models.CurrencyData
@@ -20,24 +22,27 @@ import retrofit2.Retrofit
 import java.util.*
 import kotlin.collections.ArrayList
 
-class CurrencyViewModel() : ViewModel() {
+class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
-    companion object {
-        const val SETTINGS_DB = "SETTINGS_DB"
+    companion object{
+        const val LOG = "NBRBCOMMONLOG"
     }
 
+    private val settingsDB: SettingsDataBase
+    private val dao: SettingsDao
     private val currencies: MutableLiveData<Array<List<CurrencyData>>> = MutableLiveData()
     private val currenciesSettings: MutableLiveData<List<CurrencySettingContainer>> =
         MutableLiveData()
+    private val settingsAvailable : MutableLiveData<Boolean> = MutableLiveData()
 
     private var disposable: Disposable? = null
 
     init {
+        Log.d(LOG, "CurrencyViewModel: init()")
         getCurrencyData()
 
-        val settingsDB =
-            Room.databaseBuilder(App.appContext, AppDataBase::class.java, SETTINGS_DB).build()
-        val dao = settingsDB.dao
+        settingsDB = SettingsDataBase.getDatabase(app.applicationContext)
+        dao = settingsDB.dao
     }
 
     private fun getCurrencyData() {
@@ -59,18 +64,20 @@ class CurrencyViewModel() : ViewModel() {
         disposable = coursesData?.subscribeWith(object :
             DisposableSingleObserver<Array<List<CurrencyData>>>() {
             override fun onSuccess(t: Array<List<CurrencyData>>?) {
-                postValue(t)
+                postValueToCurrencies(t)
+                postValueToSettingsAvailable(true)
             }
 
             override fun onError(e: Throwable?) {
                 val list: List<CurrencyData> = ArrayList()
-                postValue(arrayOf(list))
+                postValueToCurrencies(arrayOf(list))
+                postValueToSettingsAvailable(false)
             }
         })
     }
 
     private fun getSettings() {
-        
+
     }
 
     override fun onCleared() {
@@ -78,11 +85,9 @@ class CurrencyViewModel() : ViewModel() {
         disposable?.dispose()
     }
 
-    private fun postValue(list: Array<List<CurrencyData>>?) {
-        currencies.postValue(list)
-    }
-
     fun getCurrenciesData() = (currencies as LiveData<Array<List<CurrencyData>>>)
+
+    fun getSettingsAvailable() = (settingsAvailable as LiveData<Boolean>)
 
     fun getCurrencyByCharCode(charCode: String): CurrencyData {
         currencies.value?.get(0)?.let {
@@ -94,7 +99,16 @@ class CurrencyViewModel() : ViewModel() {
         return CurrencyData()
     }
 
-    //    fun getAUD() = currencies.value?.get(0)?.get(0)
+    private fun postValueToCurrencies(list: Array<List<CurrencyData>>?) {
+        currencies.postValue(list)
+    }
+
+    private fun postValueToSettingsAvailable(bool : Boolean) {
+        settingsAvailable.postValue(bool)
+    }
+
+
+//    fun getAUD() = currencies.value?.get(0)?.get(0)
 //
 //    fun getAMD() = currencies.value?.get(0)?.get(1)
 //
