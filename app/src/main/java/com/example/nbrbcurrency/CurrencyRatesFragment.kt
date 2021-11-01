@@ -25,15 +25,16 @@ class CurrencyRatesFragment : Fragment() {
     private lateinit var tomorrowDateTextView: TextView
     private lateinit var problemTextView: TextView
     private lateinit var toolbar: Toolbar
-    private lateinit var menu: Menu
     private lateinit var settings: MenuItem
     private lateinit var recycler: RecyclerView
 
     private var host: HostInterface? = null
     private var disposable: Disposable? = null
 
-    private val viewModel: CurrencyViewModel by lazy { ViewModelProvider((host as ViewModelStoreOwner))
-        .get(CurrencyViewModel::class.java) }
+    private val viewModel: CurrencyViewModel by lazy {
+        ViewModelProvider((host as ViewModelStoreOwner))
+            .get(CurrencyViewModel::class.java)
+    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -79,18 +80,12 @@ class CurrencyRatesFragment : Fragment() {
                 t?.let {
                     if (t.size == 2) {
                         showRecycler()
-                        showSettingsMenuIcon()
                         recycler.adapter = CurrencyAdapter(it[0], it[1])
-                        settings.isVisible = true
                     } else {
                         showProblemMessage()
                     }
                 }
             })
-
-        val settingsAvailable: LiveData<Boolean> = viewModel.getSettingsAvailable()
-        settingsAvailable.observe(viewLifecycleOwner,
-            { t -> t?.let { settings.isVisible = t } })
 
 //        val courses: Single<Array<List<CurrencyData>>>? = viewModel.getCurrencyData()
 //        disposable = courses?.observeOn(AndroidSchedulers.mainThread())
@@ -122,10 +117,18 @@ class CurrencyRatesFragment : Fragment() {
         host = null
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        settings = menu.findItem(R.id.settings)
+
+        val settingsAvailable: LiveData<Boolean> = viewModel.getSettingsAvailable()
+        settingsAvailable.observe(viewLifecycleOwner,
+            { t -> t?.let { settings.isVisible = t } })
+    }
+
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
         inflater.inflate(R.menu.currency_courses_menu, menu)
-        this.menu = menu
+        settings = menu.findItem(R.id.settings)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -149,11 +152,6 @@ class CurrencyRatesFragment : Fragment() {
     private fun showProblemMessage() {
         recycler.visibility = View.INVISIBLE
         problemTextView.visibility = View.VISIBLE
-    }
-
-    private fun showSettingsMenuIcon() {
-        settings = menu.findItem(R.id.settings)
-        settings.isVisible = true
     }
 
     private inner class CurrencyHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -194,6 +192,5 @@ class CurrencyRatesFragment : Fragment() {
         }
 
         override fun getItemCount() = currenciesToday.size
-
     }
 }
