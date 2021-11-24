@@ -15,7 +15,7 @@ import com.example.nbrbcurrency.retrofit.models.CurrencyDataList
 import com.example.nbrbcurrency.utils.DateHelper
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.core.Single.*
-import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.functions.BiFunction
 import io.reactivex.rxjava3.observers.DisposableSingleObserver
 import retrofit2.Retrofit
@@ -24,7 +24,7 @@ import kotlin.collections.ArrayList
 
 class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
-    companion object{
+    companion object {
         const val LOG = "NBRBCOMMONLOG"
     }
 
@@ -33,9 +33,9 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
     private val currencies: MutableLiveData<Array<List<CurrencyData>>> = MutableLiveData()
     private val currenciesSettings: MutableLiveData<List<CurrencySettingContainer>> =
         MutableLiveData()
-    private val settingsAvailable : MutableLiveData<Boolean> = MutableLiveData()
+    private val settingsAvailable: MutableLiveData<Boolean> = MutableLiveData()
 
-    private var disposable: Disposable? = null
+    private var compositeDisposable: CompositeDisposable? = null
 
     init {
         Log.d(LOG, "CurrencyViewModel: init()")
@@ -43,6 +43,7 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
         settingsDB = SettingsDataBase.getDatabase(app.applicationContext)
         dao = settingsDB.dao
+        getSettingsList()
     }
 
     private fun getCurrencyData() {
@@ -61,33 +62,58 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
                 return@BiFunction arrayOf(t1.currencies, t2.currencies)
             })
 
-        disposable = coursesData?.subscribeWith(object :
-            DisposableSingleObserver<Array<List<CurrencyData>>>() {
-            override fun onSuccess(t: Array<List<CurrencyData>>?) {
-                postValueToCurrencies(t)
-                postValueToSettingsAvailable(true)
-            }
+        compositeDisposable?.add(
+            coursesData?.subscribeWith(object :
+                DisposableSingleObserver<Array<List<CurrencyData>>>() {
+                override fun onSuccess(t: Array<List<CurrencyData>>?) {
+                    postValueToCurrencies(t)
+                    postValueToSettingsAvailable(true)
+                }
 
-            override fun onError(e: Throwable?) {
-                val list: List<CurrencyData> = ArrayList()
-                postValueToCurrencies(arrayOf(list))
-                postValueToSettingsAvailable(false)
-            }
-        })
-    }
-
-    private fun getSettings() {
-
+                override fun onError(e: Throwable?) {
+                    val list: List<CurrencyData> = ArrayList()
+                    postValueToCurrencies(arrayOf(list))
+                    postValueToSettingsAvailable(false)
+                }
+            })
+        )
     }
 
     override fun onCleared() {
         super.onCleared()
-        disposable?.dispose()
+        compositeDisposable?.dispose()
+    }
+
+    private fun getSettingsList() {
+        val savedSettings: Single<List<CurrencySettingContainer>> = dao.getAll()
+        val defaultSettings: Single<List<CurrencySettingContainer>> = just(getDefaultList())
+
+        val resultSettings: Single<List<CurrencySettingContainer>> = savedSettings
+            .zipWith(defaultSettings, BiFunction { t1, t2 ->
+                if (t1.isEmpty()) {
+                    return@BiFunction t1
+                } else return@BiFunction t2
+            })
+
+        compositeDisposable?.add(resultSettings.subscribeWith(
+            object : DisposableSingleObserver<List<CurrencySettingContainer>>() {
+                override fun onSuccess(t: List<CurrencySettingContainer>?) {
+                    currenciesSettings.postValue(t)
+                }
+
+                override fun onError(e: Throwable?) {
+                    currenciesSettings.postValue(ArrayList<CurrencySettingContainer>())
+                }
+
+            }
+        ))
     }
 
     fun getCurrenciesData() = (currencies as LiveData<Array<List<CurrencyData>>>)
 
     fun getSettingsAvailable() = (settingsAvailable as LiveData<Boolean>)
+
+    fun getSettings() = (currenciesSettings as LiveData<List<CurrencySettingContainer>>)
 
     fun getCurrencyByCharCode(charCode: String): CurrencyData {
         currencies.value?.get(0)?.let {
@@ -103,8 +129,40 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
         currencies.postValue(list)
     }
 
-    private fun postValueToSettingsAvailable(bool : Boolean) {
+    private fun postValueToSettingsAvailable(bool: Boolean) {
         settingsAvailable.postValue(bool)
+    }
+
+    private fun getDefaultList(): List<CurrencySettingContainer> {
+        val list = ArrayList<CurrencySettingContainer>()
+        val rub = getCurrencyByCharCode(SettingsFragment.RUB_CHARCODE)
+        val eur = getCurrencyByCharCode(SettingsFragment.EUR_CHARCODE)
+        val usd = getCurrencyByCharCode(SettingsFragment.USD_CHARCODE)
+
+        rub.let { list.add(CurrencySettingContainer(rub.charCode, rub.scale, true, 1)) }
+        eur.let { list.add(CurrencySettingContainer(eur.charCode, eur.scale, true, 2)) }
+        usd.let { list.add(CurrencySettingContainer(usd.charCode, usd.scale, true, 3)) }
+
+        list.let {
+            var i = 3
+            for (currency in list) {
+                if (currency.charCode != SettingsFragment.RUB_CHARCODE
+                    || currency.charCode != SettingsFragment.EUR_CHARCODE
+                    || currency.charCode != SettingsFragment.USD_CHARCODE
+                ) {
+                    i++
+                    list.add(
+                        CurrencySettingContainer(
+                            currency.charCode,
+                            currency.scale,
+                            false,
+                            i
+                        )
+                    )
+                }
+            }
+        }
+        return list
     }
 
 

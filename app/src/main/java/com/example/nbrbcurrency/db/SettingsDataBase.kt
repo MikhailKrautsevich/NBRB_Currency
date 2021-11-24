@@ -10,7 +10,7 @@ abstract class SettingsDataBase : RoomDatabase() {
     abstract val dao: SettingsDao
 
     companion object {
-        const val SETTINGS_DB = "SETTINGS_DB"
+        private const val SETTINGS_DB = "SETTINGS_DB"
 
         @Volatile
         private var INSTANCE: SettingsDataBase? = null

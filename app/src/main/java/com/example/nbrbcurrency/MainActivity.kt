@@ -7,7 +7,7 @@ import com.example.nbrbcurrency.interfaces.HostInterface
 
 class MainActivity : AppCompatActivity(), HostInterface {
 
-    val manager: FragmentManager by lazy { supportFragmentManager }
+    private val manager: FragmentManager by lazy { supportFragmentManager }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -10,13 +10,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nbrbcurrency.db.CurrencySettingContainer
 import com.example.nbrbcurrency.interfaces.HostInterface
-import com.example.nbrbcurrency.retrofit.models.CurrencyData
 
 class SettingsFragment : Fragment() {
 
@@ -31,11 +31,10 @@ class SettingsFragment : Fragment() {
     private lateinit var recycler: RecyclerView
 
     private var host: HostInterface? = null
-    private lateinit var settingsList: List<CurrencySettingContainer>
+    private lateinit var settingsListLiveData: LiveData<List<CurrencySettingContainer>>
 
     private val viewModel: CurrencyViewModel by lazy { ViewModelProvider(host as ViewModelStoreOwner)
         .get(CurrencyViewModel::class.java) }
-    private var currencies: List<CurrencyData>? = ArrayList()
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -53,9 +52,7 @@ class SettingsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val v = inflater.inflate(R.layout.fragment_settings, container, false)
-        currencies = viewModel.getCurrenciesData().value?.get(0)
         recycler = v.findViewById(R.id.settings_recycler)
-        viewModel.getCurrenciesData()
 
         return v
     }
@@ -72,10 +69,12 @@ class SettingsFragment : Fragment() {
         toolbar.setNavigationOnClickListener { host?.returnToCourses() }
 
         recycler.layoutManager = LinearLayoutManager(context)
-        settingsList = getDefaultList()
-        recycler.adapter = SettingsAdapter(settingsList)
-    }
 
+        settingsListLiveData = viewModel.getSettings()
+        settingsListLiveData.observe(viewLifecycleOwner, {
+            t1 ->  recycler.adapter = SettingsAdapter(t1)
+        })
+    }
 
     override fun onDetach() {
         super.onDetach()
@@ -93,39 +92,6 @@ class SettingsFragment : Fragment() {
             host?.returnToCourses()
         }
         return false
-    }
-
-    private fun getDefaultList(): List<CurrencySettingContainer> {
-        val list = ArrayList<CurrencySettingContainer>()
-        list.add(CurrencySettingContainer("aa", "111", true, 0))
-        val rub = viewModel.getCurrencyByCharCode(RUB_CHARCODE)
-        val eur = viewModel.getCurrencyByCharCode(EUR_CHARCODE)
-        val usd = viewModel.getCurrencyByCharCode(USD_CHARCODE)
-
-        rub.let { list.add(CurrencySettingContainer(rub.charCode, rub.scale, true, 1)) }
-        eur.let { list.add(CurrencySettingContainer(eur.charCode, eur.scale, true, 2)) }
-        usd.let { list.add(CurrencySettingContainer(usd.charCode, usd.scale, true, 3)) }
-
-        currencies?.let {
-            var i = 3
-            for (currency in currencies!!) {
-                if (currency.charCode != RUB_CHARCODE
-                    || currency.charCode != EUR_CHARCODE
-                    || currency.charCode != USD_CHARCODE
-                ) {
-                    i++
-                    list.add(
-                        CurrencySettingContainer(
-                            currency.charCode,
-                            currency.scale,
-                            false,
-                            i
-                        )
-                    )
-                }
-            }
-        }
-        return list
     }
 
     private inner class SettingHolder(v: View) : RecyclerView.ViewHolder(v) {
