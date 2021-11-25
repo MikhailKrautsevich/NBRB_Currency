@@ -16,8 +16,10 @@ import com.example.nbrbcurrency.utils.DateHelper
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.core.Single.*
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.functions.BiFunction
 import io.reactivex.rxjava3.observers.DisposableSingleObserver
+import io.reactivex.rxjava3.schedulers.Schedulers
 import retrofit2.Retrofit
 import java.util.*
 import kotlin.collections.ArrayList
@@ -26,6 +28,10 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         const val LOG = "NBRBCOMMONLOG"
+
+        const val RUB_CHARCODE = "RUB"
+        const val EUR_CHARCODE = "EUR"
+        const val USD_CHARCODE = "USD"
     }
 
     private val settingsDB: SettingsDataBase
@@ -43,7 +49,6 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
         settingsDB = SettingsDataBase.getDatabase(app.applicationContext)
         dao = settingsDB.dao
-        getSettingsList()
     }
 
     private fun getCurrencyData() {
@@ -62,7 +67,7 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
                 return@BiFunction arrayOf(t1.currencies, t2.currencies)
             })
 
-        compositeDisposable?.add(
+        val disposable: Disposable? =
             coursesData?.subscribeWith(object :
                 DisposableSingleObserver<Array<List<CurrencyData>>>() {
                 override fun onSuccess(t: Array<List<CurrencyData>>?) {
@@ -76,7 +81,7 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
                     postValueToSettingsAvailable(false)
                 }
             })
-        )
+        compositeDisposable?.add(disposable)
     }
 
     override fun onCleared() {
@@ -84,29 +89,33 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
         compositeDisposable?.dispose()
     }
 
-    private fun getSettingsList() {
+    fun getSettingsList() {
         val savedSettings: Single<List<CurrencySettingContainer>> = dao.getAll()
         val defaultSettings: Single<List<CurrencySettingContainer>> = just(getDefaultList())
 
         val resultSettings: Single<List<CurrencySettingContainer>> = savedSettings
             .zipWith(defaultSettings, BiFunction { t1, t2 ->
                 if (t1.isEmpty()) {
-                    return@BiFunction t1
-                } else return@BiFunction t2
-            })
+                    return@BiFunction t2
+                } else return@BiFunction t1
+            }).subscribeOn(Schedulers.io())
 
-        compositeDisposable?.add(resultSettings.subscribeWith(
+        val disposable : Disposable? = resultSettings
+            .subscribeWith(
             object : DisposableSingleObserver<List<CurrencySettingContainer>>() {
                 override fun onSuccess(t: List<CurrencySettingContainer>?) {
                     currenciesSettings.postValue(t)
+                    Log.d(LOG, "suc")
                 }
 
                 override fun onError(e: Throwable?) {
                     currenciesSettings.postValue(ArrayList<CurrencySettingContainer>())
+                    Log.d(LOG, "fail")
+                    Log.d(LOG, e.toString())
                 }
-
             }
-        ))
+        )
+        compositeDisposable?.add(disposable)
     }
 
     fun getCurrenciesData() = (currencies as LiveData<Array<List<CurrencyData>>>)
@@ -115,7 +124,7 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
     fun getSettings() = (currenciesSettings as LiveData<List<CurrencySettingContainer>>)
 
-    fun getCurrencyByCharCode(charCode: String): CurrencyData {
+    private fun getCurrencyByCharCode(charCode: String): CurrencyData {
         currencies.value?.get(0)?.let {
             val list = currencies.value!![0]
             for (currency in list) {
@@ -135,33 +144,36 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun getDefaultList(): List<CurrencySettingContainer> {
         val list = ArrayList<CurrencySettingContainer>()
-        val rub = getCurrencyByCharCode(SettingsFragment.RUB_CHARCODE)
-        val eur = getCurrencyByCharCode(SettingsFragment.EUR_CHARCODE)
-        val usd = getCurrencyByCharCode(SettingsFragment.USD_CHARCODE)
+        list.add(CurrencySettingContainer(RUB_CHARCODE, "100", true, 1))
 
-        rub.let { list.add(CurrencySettingContainer(rub.charCode, rub.scale, true, 1)) }
-        eur.let { list.add(CurrencySettingContainer(eur.charCode, eur.scale, true, 2)) }
-        usd.let { list.add(CurrencySettingContainer(usd.charCode, usd.scale, true, 3)) }
+//        val rub = getCurrencyByCharCode(RUB_CHARCODE)
+//        val eur = getCurrencyByCharCode(EUR_CHARCODE)
+//        val usd = getCurrencyByCharCode(USD_CHARCODE)
+//
+//        rub.let { list.add(CurrencySettingContainer(rub.charCode, rub.scale, true, 1)) }
+//        eur.let { list.add(CurrencySettingContainer(eur.charCode, eur.scale, true, 2)) }
+//        usd.let { list.add(CurrencySettingContainer(usd.charCode, usd.scale, true, 3)) }
 
-        list.let {
-            var i = 3
-            for (currency in list) {
-                if (currency.charCode != SettingsFragment.RUB_CHARCODE
-                    || currency.charCode != SettingsFragment.EUR_CHARCODE
-                    || currency.charCode != SettingsFragment.USD_CHARCODE
-                ) {
-                    i++
-                    list.add(
-                        CurrencySettingContainer(
-                            currency.charCode,
-                            currency.scale,
-                            false,
-                            i
-                        )
-                    )
-                }
-            }
-        }
+//        list.let {
+//            var i = 3
+//            for (currency in list) {
+//                if (currency.charCode != RUB_CHARCODE
+//                    || currency.charCode != EUR_CHARCODE
+//                    || currency.charCode != USD_CHARCODE
+//                ) {
+//                    i++
+//                    list.add(
+//                        CurrencySettingContainer(
+//                            currency.charCode,
+//                            currency.scale,
+//                            false,
+//                            i
+//                        )
+//                    )
+//                }
+//            }
+//        }
+        Log.d(LOG, list.size.toString())
         return list
     }
 

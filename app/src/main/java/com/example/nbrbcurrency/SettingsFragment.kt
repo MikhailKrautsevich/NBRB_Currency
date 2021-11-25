@@ -20,12 +20,6 @@ import com.example.nbrbcurrency.interfaces.HostInterface
 
 class SettingsFragment : Fragment() {
 
-    companion object {
-        const val RUB_CHARCODE = "RUB"
-        const val EUR_CHARCODE = "EUR"
-        const val USD_CHARCODE = "USD"
-    }
-
     private lateinit var toolbar: Toolbar
     private lateinit var menu: Menu
     private lateinit var recycler: RecyclerView
@@ -70,6 +64,7 @@ class SettingsFragment : Fragment() {
 
         recycler.layoutManager = LinearLayoutManager(context)
 
+        viewModel.getSettingsList()
         settingsListLiveData = viewModel.getSettings()
         settingsListLiveData.observe(viewLifecycleOwner, {
             t1 ->  recycler.adapter = SettingsAdapter(t1)
