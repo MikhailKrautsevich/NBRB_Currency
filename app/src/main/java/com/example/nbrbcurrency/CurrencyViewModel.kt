@@ -51,39 +51,6 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
         dao = settingsDB.dao
     }
 
-    private fun getCurrencyData() {
-        val date = Date()
-        val currentDate = DateHelper.getDateForRetrofit(date)
-        val tomorrowDate = DateHelper.getTomorrowDateForRetrofit(date)
-
-        val retrofit: Retrofit = RetrofitHelper.getRetrofit()
-        val api: CurrencyApi? = RetrofitHelper.getApi(retrofit)
-
-        val currentCourses: Single<CurrencyDataList>? = api?.getCurrencyList(currentDate)
-        val tomorrowCourses: Single<CurrencyDataList>? = api?.getCurrencyList(tomorrowDate)
-
-        val coursesData: Single<Array<List<CurrencyData>>>? = currentCourses
-            ?.zipWith(tomorrowCourses, BiFunction { t1, t2 ->
-                return@BiFunction arrayOf(t1.currencies, t2.currencies)
-            })
-
-        val disposable: Disposable? =
-            coursesData?.subscribeWith(object :
-                DisposableSingleObserver<Array<List<CurrencyData>>>() {
-                override fun onSuccess(t: Array<List<CurrencyData>>?) {
-                    postValueToCurrencies(t)
-                    postValueToSettingsAvailable(true)
-                }
-
-                override fun onError(e: Throwable?) {
-                    val list: List<CurrencyData> = ArrayList()
-                    postValueToCurrencies(arrayOf(list))
-                    postValueToSettingsAvailable(false)
-                }
-            })
-        compositeDisposable?.add(disposable)
-    }
-
     override fun onCleared() {
         super.onCleared()
         compositeDisposable?.dispose()
@@ -124,6 +91,39 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
     fun getSettings() = (currenciesSettings as LiveData<List<CurrencySettingContainer>>)
 
+    private fun getCurrencyData() {
+        val date = Date()
+        val currentDate = DateHelper.getDateForRetrofit(date)
+        val tomorrowDate = DateHelper.getTomorrowDateForRetrofit(date)
+
+        val retrofit: Retrofit = RetrofitHelper.getRetrofit()
+        val api: CurrencyApi? = RetrofitHelper.getApi(retrofit)
+
+        val currentCourses: Single<CurrencyDataList>? = api?.getCurrencyList(currentDate)
+        val tomorrowCourses: Single<CurrencyDataList>? = api?.getCurrencyList(tomorrowDate)
+
+        val coursesData: Single<Array<List<CurrencyData>>>? = currentCourses
+            ?.zipWith(tomorrowCourses, BiFunction { t1, t2 ->
+                return@BiFunction arrayOf(t1.currencies, t2.currencies)
+            })
+
+        val disposable: Disposable? =
+            coursesData?.subscribeWith(object :
+                DisposableSingleObserver<Array<List<CurrencyData>>>() {
+                override fun onSuccess(t: Array<List<CurrencyData>>?) {
+                    postValueToCurrencies(t)
+                    postValueToSettingsAvailable(true)
+                }
+
+                override fun onError(e: Throwable?) {
+                    val list: List<CurrencyData> = ArrayList()
+                    postValueToCurrencies(arrayOf(list))
+                    postValueToSettingsAvailable(false)
+                }
+            })
+        compositeDisposable?.add(disposable)
+    }
+
     private fun getCurrencyByCharCode(charCode: String): CurrencyData {
         currencies.value?.get(0)?.let {
             val list = currencies.value!![0]
@@ -144,15 +144,14 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun getDefaultList(): List<CurrencySettingContainer> {
         val list = ArrayList<CurrencySettingContainer>()
-        list.add(CurrencySettingContainer(RUB_CHARCODE, "100", true, 1))
 
-//        val rub = getCurrencyByCharCode(RUB_CHARCODE)
-//        val eur = getCurrencyByCharCode(EUR_CHARCODE)
-//        val usd = getCurrencyByCharCode(USD_CHARCODE)
-//
-//        rub.let { list.add(CurrencySettingContainer(rub.charCode, rub.scale, true, 1)) }
-//        eur.let { list.add(CurrencySettingContainer(eur.charCode, eur.scale, true, 2)) }
-//        usd.let { list.add(CurrencySettingContainer(usd.charCode, usd.scale, true, 3)) }
+        val rub = getCurrencyByCharCode(RUB_CHARCODE)
+        val eur = getCurrencyByCharCode(EUR_CHARCODE)
+        val usd = getCurrencyByCharCode(USD_CHARCODE)
+
+        rub.let { list.add(CurrencySettingContainer(rub.charCode, getScaleName(rub), true, 1)) }
+        eur.let { list.add(CurrencySettingContainer(eur.charCode, getScaleName(eur), true, 2)) }
+        usd.let { list.add(CurrencySettingContainer(usd.charCode, getScaleName(usd), true, 3)) }
 
 //        list.let {
 //            var i = 3
@@ -177,6 +176,9 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
         return list
     }
 
+    private fun getScaleName(curr: CurrencyData): String {
+        return String.format("%s %s", curr.scale, curr.name)
+    }
 
 //    fun getAUD() = currencies.value?.get(0)?.get(0)
 //
