@@ -32,8 +32,10 @@ class SettingsFragment : Fragment() {
     private var host: HostInterface? = null
     private lateinit var settingsListLiveData: LiveData<List<CurrencySettingContainer>>
 
-    private val viewModel: CurrencyViewModel by lazy { ViewModelProvider(host as ViewModelStoreOwner)
-        .get(CurrencyViewModel::class.java) }
+    private val viewModel: CurrencyViewModel by lazy {
+        ViewModelProvider(host as ViewModelStoreOwner)
+            .get(CurrencyViewModel::class.java)
+    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -71,9 +73,30 @@ class SettingsFragment : Fragment() {
 
         viewModel.getSettingsList()
         settingsListLiveData = viewModel.getSettings()
-        settingsListLiveData.observe(viewLifecycleOwner, {
-            t1 ->  recycler.adapter = SettingsAdapter(t1)
+        settingsListLiveData.observe(viewLifecycleOwner, { t1 ->
+                val adapter = SettingsAdapter(t1)
+                recycler.adapter = adapter
         })
+
+        val itemTouchHelperCallback : ItemTouchHelper.SimpleCallback = object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+            0
+        ){
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                Log.d(LOG, "onMove")
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                Log.d(LOG, "onSwiped")
+            }
+        }
+        val itemTouchHelper = ItemTouchHelper(itemTouchHelperCallback)
+        itemTouchHelper.attachToRecyclerView(recycler)
     }
 
     override fun onDetach() {
@@ -90,7 +113,10 @@ class SettingsFragment : Fragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == R.id.ok) {
             val settings = (recycler.adapter as SettingsAdapter).getList()
-            Log.d(LOG, "SettingsFragment: onOptionsItemSelected(): OK: settings.size = ${settings.size}")
+            Log.d(
+                LOG,
+                "SettingsFragment: onOptionsItemSelected(): OK: settings.size = ${settings.size}"
+            )
             viewModel.saveSettings(settings)
             host?.returnToCourses()
         }
@@ -116,8 +142,8 @@ class SettingsFragment : Fragment() {
         }
     }
 
-    private inner class SettingsAdapter(private val settings : List<CurrencySettingContainer>)
-        : RecyclerView.Adapter<SettingHolder>() {
+    private inner class SettingsAdapter(private val settings: List<CurrencySettingContainer>) :
+        RecyclerView.Adapter<SettingHolder>(){
 
         init {
             Log.d(LOG, "SettingsAdapter: init(): settings.size = ${settings.size}")
