@@ -2,7 +2,6 @@ package com.example.nbrbcurrency
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.*
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -86,25 +85,6 @@ class CurrencyRatesFragment : Fragment() {
                     }
                 }
             })
-
-//        val courses: Single<Array<List<CurrencyData>>>? = viewModel.getCurrencyData()
-//        disposable = courses?.observeOn(AndroidSchedulers.mainThread())
-//            ?.subscribeWith(object : DisposableSingleObserver<Array<List<CurrencyData>>>() {
-//                override fun onSuccess(dataList: Array<List<CurrencyData>>) {
-//                    if (dataList[0] != null && dataList[1] != null) {
-//                        recycler.adapter = CurrencyAdapter(dataList[0], dataList[1])
-//                        showRecycler()
-//                        showSettingsMenuIcon()
-//                    }
-//                }
-//
-//                override fun onError(e: Throwable?) {
-//                    showProblemMessage()
-//                    if (e != null) {
-//                        Log.d(LOG, "" + e.localizedMessage)
-//                    }
-//                }
-//            })
     }
 
     override fun onDestroy() {

@@ -20,6 +20,10 @@ import com.example.nbrbcurrency.interfaces.HostInterface
 
 class SettingsFragment : Fragment() {
 
+    companion object {
+        const val LOG = "NBRBCOMMONLOG"
+    }
+
     private lateinit var toolbar: Toolbar
     private lateinit var menu: Menu
     private lateinit var recycler: RecyclerView
@@ -84,6 +88,9 @@ class SettingsFragment : Fragment() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == R.id.ok) {
+            val settings = (recycler.adapter as SettingsAdapter).getList()
+            Log.d(LOG, "SettingsFragment: onOptionsItemSelected(): OK: settings.size = ${settings.size}")
+            viewModel.saveSettings(settings)
             host?.returnToCourses()
         }
         return false
@@ -104,10 +111,11 @@ class SettingsFragment : Fragment() {
             charCode.text = setting.charCode
             scaleName.text = setting.scale
             switchCompat.isChecked = setting.isChecked
+            switchCompat.setOnCheckedChangeListener { _, p1 -> setting.isChecked = p1 }
         }
     }
 
-    private inner class SettingsAdapter(val settings : List<CurrencySettingContainer>)
+    private inner class SettingsAdapter(private val settings : List<CurrencySettingContainer>)
         : RecyclerView.Adapter<SettingHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SettingHolder {
@@ -120,5 +128,7 @@ class SettingsFragment : Fragment() {
         }
 
         override fun getItemCount(): Int = settings.size
+
+        fun getList() = settings
     }
 }

@@ -13,6 +13,9 @@ import com.example.nbrbcurrency.retrofit.RetrofitHelper
 import com.example.nbrbcurrency.retrofit.models.CurrencyData
 import com.example.nbrbcurrency.retrofit.models.CurrencyDataList
 import com.example.nbrbcurrency.utils.DateHelper
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.CompletableObserver
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.core.Single.*
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -36,6 +39,8 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
 
     private val settingsDB: SettingsDataBase
     private val dao: SettingsDao
+    private var isItFirstLaunch = false
+
     private val currencies: MutableLiveData<Array<List<CurrencyData>>> = MutableLiveData()
     private val currenciesSettings: MutableLiveData<List<CurrencySettingContainer>> =
         MutableLiveData()
@@ -63,25 +68,29 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
         val resultSettings: Single<List<CurrencySettingContainer>> = savedSettings
             .zipWith(defaultSettings, BiFunction { t1, t2 ->
                 if (t1.isEmpty()) {
+                    isItFirstLaunch = true
                     return@BiFunction t2
                 } else return@BiFunction t1
             }).subscribeOn(Schedulers.io())
 
-        val disposable : Disposable? = resultSettings
+        val disposable: Disposable? = resultSettings
+            .observeOn(AndroidSchedulers.mainThread())
             .subscribeWith(
-            object : DisposableSingleObserver<List<CurrencySettingContainer>>() {
-                override fun onSuccess(t: List<CurrencySettingContainer>?) {
-                    currenciesSettings.postValue(t)
-                    Log.d(LOG, "suc")
-                }
+                object : DisposableSingleObserver<List<CurrencySettingContainer>>() {
+                    override fun onSuccess(t: List<CurrencySettingContainer>?) {
+                        currenciesSettings.postValue(t)
+                        Log.d(LOG, "CurrencyViewModel: getSettingsList(): onSuccess()")
+                    }
 
-                override fun onError(e: Throwable?) {
-                    currenciesSettings.postValue(ArrayList<CurrencySettingContainer>())
-                    Log.d(LOG, "fail")
-                    Log.d(LOG, e.toString())
+                    override fun onError(e: Throwable?) {
+                        currenciesSettings.postValue(ArrayList<CurrencySettingContainer>())
+                        Log.d(
+                            LOG,
+                            "CurrencyViewModel: getSettingsList(): onError = ${e?.localizedMessage}"
+                        )
+                    }
                 }
-            }
-        )
+            )
         compositeDisposable?.add(disposable)
     }
 
@@ -90,6 +99,50 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
     fun getSettingsAvailable() = (settingsAvailable as LiveData<Boolean>)
 
     fun getSettings() = (currenciesSettings as LiveData<List<CurrencySettingContainer>>)
+
+    fun saveSettings(settings: List<CurrencySettingContainer>) {
+        for (setting in settings) {
+            val completable: Completable? = if (isItFirstLaunch) {
+                Completable.fromRunnable { dao.add(setting) }
+            } else {
+                Completable.fromRunnable {
+                    dao.update(setting)
+                }
+            }
+            completable
+                ?.subscribeOn(Schedulers.io())
+                ?.observeOn(Schedulers.io())
+                ?.subscribeWith(object : CompletableObserver {
+                    override fun onSubscribe(d: Disposable?) {
+                        Log.d(
+                            LOG,
+                            "CurrencyViewModel: saveSettings(): I try to save ${setting.position}"
+                        )
+                    }
+
+                    override fun onComplete() {
+                        if (isItFirstLaunch) {
+                            Log.d(
+                                LOG,
+                                "CurrencyViewModel: saveSettings(): I saved ${setting.position}"
+                            )
+                        } else {
+                            Log.d(
+                                LOG,
+                                "CurrencyViewModel: saveSettings(): I updated ${setting.position}"
+                            )
+                        }
+                    }
+
+                    override fun onError(e: Throwable?) {
+                        Log.d(
+                            LOG,
+                            "CurrencyViewModel: saveSettings(): I did not save ${setting.position} because ${e.toString()}"
+                        )
+                    }
+                })
+        }
+    }
 
     private fun getCurrencyData() {
         val date = Date()
@@ -106,6 +159,8 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
             ?.zipWith(tomorrowCourses, BiFunction { t1, t2 ->
                 return@BiFunction arrayOf(t1.currencies, t2.currencies)
             })
+            ?.subscribeOn(Schedulers.computation())
+            ?.observeOn(AndroidSchedulers.mainThread())
 
         val disposable: Disposable? =
             coursesData?.subscribeWith(object :
@@ -149,30 +204,36 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
         val eur = getCurrencyByCharCode(EUR_CHARCODE)
         val usd = getCurrencyByCharCode(USD_CHARCODE)
 
-        rub.let { list.add(CurrencySettingContainer(rub.charCode, getScaleName(rub), true, 1)) }
-        eur.let { list.add(CurrencySettingContainer(eur.charCode, getScaleName(eur), true, 2)) }
-        usd.let { list.add(CurrencySettingContainer(usd.charCode, getScaleName(usd), true, 3)) }
+        list.add(CurrencySettingContainer(rub.charCode, getScaleName(rub), true, 1))
+        list.add(CurrencySettingContainer(eur.charCode, getScaleName(eur), true, 2))
+        list.add(CurrencySettingContainer(usd.charCode, getScaleName(usd), true, 3))
 
-//        list.let {
-//            var i = 3
-//            for (currency in list) {
-//                if (currency.charCode != RUB_CHARCODE
-//                    || currency.charCode != EUR_CHARCODE
-//                    || currency.charCode != USD_CHARCODE
-//                ) {
-//                    i++
-//                    list.add(
-//                        CurrencySettingContainer(
-//                            currency.charCode,
-//                            currency.scale,
-//                            false,
-//                            i
-//                        )
-//                    )
-//                }
-//            }
-//        }
-        Log.d(LOG, list.size.toString())
+        val data = currencies.value?.get(0)
+        var position = 3
+
+        data?.let {
+            for (currency in data) {
+                if (currency.charCode != RUB_CHARCODE
+                    || currency.charCode != EUR_CHARCODE
+                    || currency.charCode != USD_CHARCODE
+                ) {
+                    list.add(
+                        CurrencySettingContainer(
+                            currency.charCode,
+                            getScaleName(currency),
+                            false,
+                            position
+                        )
+                    )
+                    position++
+                }
+            }
+        }
+
+        Log.d(
+            LOG,
+            "CurrencyViewModel: getDefaultList(): Default List size = ${list.size.toString()}"
+        )
         return list
     }
 
