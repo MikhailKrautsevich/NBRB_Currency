@@ -101,46 +101,50 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
     fun getSettings() = (currenciesSettings as LiveData<List<CurrencySettingContainer>>)
 
     fun saveSettings(settings: List<CurrencySettingContainer>) {
-        for (setting in settings) {
-            val completable: Completable? = if (isItFirstLaunch) {
-                Completable.fromRunnable { dao.add(setting) }
-            } else {
-                Completable.fromRunnable {
-                    dao.update(setting)
-                }
-            }
-            completable
-                ?.subscribeOn(Schedulers.io())
-                ?.observeOn(Schedulers.io())
-                ?.subscribeWith(object : CompletableObserver {
-                    override fun onSubscribe(d: Disposable?) {
-                        Log.d(
-                            LOG,
-                            "CurrencyViewModel: saveSettings(): I try to save ${setting.position}"
-                        )
+        if (currenciesSettings.value != null
+            || currenciesSettings.value != settings) {
+            for (setting in settings) {
+                val completable: Completable? = if (isItFirstLaunch) {
+                    Completable.fromRunnable { dao.add(setting) }
+                } else {
+                    Completable.fromRunnable {
+                        setting.position = settings.indexOf(setting)                                    // апдейтим позицию setting
+                        dao.update(setting)
                     }
-
-                    override fun onComplete() {
-                        if (isItFirstLaunch) {
+                }
+                completable
+                    ?.subscribeOn(Schedulers.io())
+                    ?.observeOn(Schedulers.io())
+                    ?.subscribeWith(object : CompletableObserver {
+                        override fun onSubscribe(d: Disposable?) {
                             Log.d(
                                 LOG,
-                                "CurrencyViewModel: saveSettings(): I saved ${setting.position}"
-                            )
-                        } else {
-                            Log.d(
-                                LOG,
-                                "CurrencyViewModel: saveSettings(): I updated ${setting.position}"
+                                "CurrencyViewModel: saveSettings(): I try to save ${setting.position}"
                             )
                         }
-                    }
 
-                    override fun onError(e: Throwable?) {
-                        Log.d(
-                            LOG,
-                            "CurrencyViewModel: saveSettings(): I did not save ${setting.position} because ${e.toString()}"
-                        )
-                    }
-                })
+                        override fun onComplete() {
+                            if (isItFirstLaunch) {
+                                Log.d(
+                                    LOG,
+                                    "CurrencyViewModel: saveSettings(): I saved ${setting.position}"
+                                )
+                            } else {
+                                Log.d(
+                                    LOG,
+                                    "CurrencyViewModel: saveSettings(): I updated ${setting.position}"
+                                )
+                            }
+                        }
+
+                        override fun onError(e: Throwable?) {
+                            Log.d(
+                                LOG,
+                                "CurrencyViewModel: saveSettings(): I did not save ${setting.position} because ${e.toString()}"
+                            )
+                        }
+                    })
+            }
         }
     }
 
@@ -204,9 +208,9 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
         val eur = getCurrencyByCharCode(EUR_CHARCODE)
         val usd = getCurrencyByCharCode(USD_CHARCODE)
 
-        list.add(CurrencySettingContainer(rub.charCode, getScaleName(rub), true, 1))
-        list.add(CurrencySettingContainer(eur.charCode, getScaleName(eur), true, 2))
-        list.add(CurrencySettingContainer(usd.charCode, getScaleName(usd), true, 3))
+        list.add(CurrencySettingContainer(rub.charCode, getScaleName(rub), true, 0))
+        list.add(CurrencySettingContainer(eur.charCode, getScaleName(eur), true, 1))
+        list.add(CurrencySettingContainer(usd.charCode, getScaleName(usd), true, 2))
 
         val data = currencies.value?.get(0)
         var position = 3
@@ -214,8 +218,8 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
         data?.let {
             for (currency in data) {
                 if (currency.charCode != RUB_CHARCODE
-                    || currency.charCode != EUR_CHARCODE
-                    || currency.charCode != USD_CHARCODE
+                    && currency.charCode != EUR_CHARCODE
+                    && currency.charCode != USD_CHARCODE
                 ) {
                     list.add(
                         CurrencySettingContainer(
@@ -240,58 +244,4 @@ class CurrencyViewModel(app: Application) : AndroidViewModel(app) {
     private fun getScaleName(curr: CurrencyData): String {
         return String.format("%s %s", curr.scale, curr.name)
     }
-
-//    fun getAUD() = currencies.value?.get(0)?.get(0)
-//
-//    fun getAMD() = currencies.value?.get(0)?.get(1)
-//
-//    fun getBGN() = currencies.value?.get(0)?.get(2)
-//
-//    fun getUAH() = currencies.value?.get(0)?.get(3)
-//
-//    fun getDKK() = currencies.value?.get(0)?.get(4)
-//
-//    fun getUSD() = currencies.value?.get(0)?.get(5)
-//
-//    fun getEUR() = currencies.value?.get(0)?.get(6)
-//
-//    fun getPLN() = currencies.value?.get(0)?.get(7)
-//
-//    fun getJPY() = currencies.value?.get(0)?.get(8)
-//
-//    fun getIRR() = currencies.value?.get(0)?.get(9)
-//
-//    fun getISK() = currencies.value?.get(0)?.get(10)
-//
-//    fun getCAD() = currencies.value?.get(0)?.get(11)
-//
-//    fun getCNY() = currencies.value?.get(0)?.get(12)
-//
-//    fun getKWD() = currencies.value?.get(0)?.get(13)
-//
-//    fun getMDL() = currencies.value?.get(0)?.get(14)
-//
-//    fun getNZD() = currencies.value?.get(0)?.get(15)
-//
-//    fun getNOK() = currencies.value?.get(0)?.get(16)
-//
-//    fun getRUB() = currencies.value?.get(0)?.get(17)
-//
-//    fun getXDR() = currencies.value?.get(0)?.get(18)
-//
-//    fun getSGD() = currencies.value?.get(0)?.get(19)
-//
-//    fun getKGS() = currencies.value?.get(0)?.get(20)
-//
-//    fun getKZT() = currencies.value?.get(0)?.get(21)
-//
-//    fun getTRY() = currencies.value?.get(0)?.get(22)
-//
-//    fun getGBP() = currencies.value?.get(0)?.get(23)
-//
-//    fun getCZK() = currencies.value?.get(0)?.get(24)
-//
-//    fun getSEK() = currencies.value?.get(0)?.get(25)
-//
-//    fun getCHF() = currencies.value?.get(0)?.get(26)
 }

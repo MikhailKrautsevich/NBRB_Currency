@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nbrbcurrency.db.CurrencySettingContainer
@@ -117,6 +118,10 @@ class SettingsFragment : Fragment() {
 
     private inner class SettingsAdapter(private val settings : List<CurrencySettingContainer>)
         : RecyclerView.Adapter<SettingHolder>() {
+
+        init {
+            Log.d(LOG, "SettingsAdapter: init(): settings.size = ${settings.size}")
+        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SettingHolder {
             val view = layoutInflater.inflate(R.layout.settings_item, parent, false)
