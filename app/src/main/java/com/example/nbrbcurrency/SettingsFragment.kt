@@ -18,8 +18,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.nbrbcurrency.db.CurrencySettingContainer
 import com.example.nbrbcurrency.interfaces.HostInterface
+import com.example.nbrbcurrency.interfaces.OnStartDragListener
+import java.util.*
 
-class SettingsFragment : Fragment() {
+class SettingsFragment : Fragment(), OnStartDragListener {
 
     companion object {
         const val LOG = "NBRBCOMMONLOG"
@@ -31,6 +33,8 @@ class SettingsFragment : Fragment() {
 
     private var host: HostInterface? = null
     private lateinit var settingsListLiveData: LiveData<List<CurrencySettingContainer>>
+
+    private lateinit var touchHelper: ItemTouchHelper
 
     private val viewModel: CurrencyViewModel by lazy {
         ViewModelProvider(host as ViewModelStoreOwner)
@@ -74,29 +78,13 @@ class SettingsFragment : Fragment() {
         viewModel.getSettingsList()
         settingsListLiveData = viewModel.getSettings()
         settingsListLiveData.observe(viewLifecycleOwner, { t1 ->
-                val adapter = SettingsAdapter(t1)
-                recycler.adapter = adapter
+            val adapter = SettingsAdapter(t1, this)
+            recycler.adapter = adapter
+
+            val callback: ItemTouchHelper.Callback = ItemMoveCallBackListener(adapter)
+            touchHelper = ItemTouchHelper(callback)
+            touchHelper.attachToRecyclerView(recycler)
         })
-
-        val itemTouchHelperCallback : ItemTouchHelper.SimpleCallback = object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
-            0
-        ){
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ): Boolean {
-                Log.d(LOG, "onMove")
-                return true
-            }
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                Log.d(LOG, "onSwiped")
-            }
-        }
-        val itemTouchHelper = ItemTouchHelper(itemTouchHelperCallback)
-        itemTouchHelper.attachToRecyclerView(recycler)
     }
 
     override fun onDetach() {
@@ -123,7 +111,11 @@ class SettingsFragment : Fragment() {
         return false
     }
 
-    private inner class SettingHolder(v: View) : RecyclerView.ViewHolder(v) {
+    override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {
+        touchHelper.startDrag(viewHolder)
+    }
+
+    inner class SettingHolder(v: View) : RecyclerView.ViewHolder(v) {
         private val charCode: TextView = itemView.findViewById(R.id.setCharCode)
         private val scaleName: TextView = itemView.findViewById(R.id.setScaleName)
 
@@ -140,10 +132,16 @@ class SettingsFragment : Fragment() {
             switchCompat.isChecked = setting.isChecked
             switchCompat.setOnCheckedChangeListener { _, p1 -> setting.isChecked = p1 }
         }
+
+        fun getTouchImage() = touch
     }
 
-    private inner class SettingsAdapter(private val settings: List<CurrencySettingContainer>) :
-        RecyclerView.Adapter<SettingHolder>(){
+    inner class SettingsAdapter(
+        private val settings: List<CurrencySettingContainer>,
+        private val startDragListener: OnStartDragListener
+    ) :
+        RecyclerView.Adapter<SettingHolder>(),
+        ItemMoveCallBackListener.Listener {
 
         init {
             Log.d(LOG, "SettingsAdapter: init(): settings.size = ${settings.size}")
@@ -156,9 +154,35 @@ class SettingsFragment : Fragment() {
 
         override fun onBindViewHolder(holder: SettingHolder, position: Int) {
             holder.bind(settings[position])
+
+            holder.getTouchImage().setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    this.startDragListener.onStartDrag(holder)
+                }
+                return@setOnTouchListener true
+            }
         }
 
         override fun getItemCount(): Int = settings.size
+
+        override fun onRowMoved(fromPos: Int, toPos: Int) {
+            if (fromPos < toPos) {
+                for (i in fromPos until toPos) {
+                    Collections.swap(settings, i, i + 1)
+                }
+            } else {
+                for (i in fromPos downTo toPos) {
+                    Collections.swap(settings, i, i - 1)
+                }
+            }
+            notifyItemMoved(fromPos, toPos)
+        }
+
+        override fun onRowSelected(itemViewHolder: SettingHolder) {
+        }
+
+        override fun onRowClear(itemViewHolder: SettingHolder) {
+        }
 
         fun getList() = settings
     }
